@@ -25,19 +25,18 @@ exports = async function(payload, response) {
     let pubBranches = [];
     const thisRepo = entitlement.repos[i];
     const [repoOwner, repoName] = thisRepo.split('/');
-    // IMPORTANT: ask daniel/sue why this is commented out
-    /*const getPubBranches = await httpService.get({ 
-      url: `https://raw.githubusercontent.com/mongodb/docs-worker-pool/meta/publishedbranches/${repoName}.yaml`
-    });
-    if (getPubBranches && getPubBranches.statusCode == '200') {
-      const yamlParsed = yaml.safeLoad(getPubBranches.body.text());
-      if (yamlParsed && yamlParsed.git && yamlParsed.git.branches && yamlParsed.git.branches.published.length > 0) {
-        pubBranches = pubBranches.concat(yamlParsed.git.branches.published);
-      }
-    } else {
-      pubBranches = ['master'];
-    }*/
-    pubBranches = ['master'];
+    const db_name = context.values.get("db_name");
+    const coll_name = "repos_branches"
+    var repoCollection = context.services.get("mongodb-atlas").db(db_name).collection(coll_name);
+    
+    const branches = await repoCollection.findOne({"repoName":repoName},{"branches":1});
+  
+    
+    if (branches != null && branches.branches != null) {
+      pubBranches = pubBranches.concat(branches.branches);
+    }
+    
+    
     // construct option for slack
     for (var k = 0; k < pubBranches.length; k++) {
       pubBranches[k] = `${thisRepo}/${pubBranches[k]}`;
